@@ -25,6 +25,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   BluetoothCharacteristic? targetCharacteristic;
 
+  String _ssid = "";
+  String _pass = "";
+
   Future<void> _permissionHandler() async {
     await Permission.location.request();
     await Permission.bluetooth.request();
@@ -69,17 +72,43 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _permissionHandler();
     _setupScanListener();
-
-    Future.delayed(const Duration(seconds: 3)).then((_) => _startScan());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("ESP Bluetooth")),
-      body: const Center(child: Text("ESP Bluetooth")),
+      body: Padding(
+        padding: const EdgeInsets.all(50),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          TextField(
+            onChanged: (text) => _ssid = text,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              hintText: "SSID",
+            ),
+          ),
+          SizedBox(height: 10),
+          TextField(
+            onChanged: (text) => _pass = text,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              hintText: "Password",
+            ),
+          ),
+          SizedBox(height: 25),
+          ElevatedButton(
+            onPressed: () => _sendData("$_ssid +=+ $_pass"),
+            child: Text("Send Data"),
+          ),
+        ]),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _sendData("GWN14 +=+ tbm0htr1"),
+        onPressed: _startScan,
         child: const Icon(Icons.bluetooth),
       ),
     );
