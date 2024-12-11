@@ -1,4 +1,4 @@
-package com.example.flutter_bluetooth
+package com.app.scoobiesbluetooth
 
 import io.flutter.embedding.android.FlutterActivity
 
