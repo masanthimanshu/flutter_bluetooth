@@ -38,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setupScanListener() {
     FlutterBluePlus.onScanResults.listen((results) async {
       for (ScanResult res in results) {
+        debugPrint("Bluetooth Devices - ${res.toString()}");
         if (res.advertisementData.advName == "Scoobies Penguin") {
           debugPrint("Found our ESP32!");
           debugPrint("Device Id - ${res.device.remoteId.str}");
@@ -51,10 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
-  }
-
-  Future<void> _startScan() async {
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 6));
   }
 
   Future<void> _sendData(String data) async {
@@ -108,7 +105,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _startScan,
+        onPressed: () async {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Trying to connect .....")),
+          );
+
+          await FlutterBluePlus.startScan(timeout: const Duration(seconds: 6));
+        },
         child: const Icon(Icons.bluetooth),
       ),
     );
