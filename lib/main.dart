@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wifi_scan/wifi_scan.dart';
 
 void main() => runApp(const MyApp());
 
@@ -25,7 +26,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   BluetoothCharacteristic? targetCharacteristic;
 
-  String _ssid = "";
+  final List<DropdownMenuItem<String>> _ssidList = [
+    DropdownMenuItem(value: "Select SSID", child: Text("Select SSID")),
+  ];
+
+  String _ssid = "Select SSID";
   String _pass = "";
 
   Future<void> _permissionHandler() async {
@@ -33,16 +38,39 @@ class _HomeScreenState extends State<HomeScreen> {
     await Permission.bluetooth.request();
     await Permission.bluetoothScan.request();
     await Permission.bluetoothConnect.request();
+    await WiFiScan.instance.canStartScan(askPermissions: true);
+  }
+
+  void _scanWifi() async {
+    Set<String> temp = {};
+
+    WiFiScan.instance.onScannedResultsAvailable.listen((res) {
+      for (WiFiAccessPoint accessPoint in res) {
+        if (accessPoint.ssid.isNotEmpty && temp.add(accessPoint.ssid)) {
+          _ssidList.add(DropdownMenuItem(
+            value: accessPoint.ssid,
+            child: Text(accessPoint.ssid),
+          ));
+        }
+      }
+
+      setState(() {});
+    });
   }
 
   void _setupScanListener() {
     FlutterBluePlus.onScanResults.listen((results) async {
       for (ScanResult res in results) {
-        debugPrint("Bluetooth Devices - ${res.toString()}");
         if (res.advertisementData.advName == "Scoobies Penguin") {
           debugPrint("Found our ESP32!");
           debugPrint("Device Id - ${res.device.remoteId.str}");
           debugPrint("Device Name - ${res.advertisementData.advName}");
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Device Connected Successfully")),
+          );
 
           FlutterBluePlus.stopScan();
 
@@ -58,9 +86,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (targetCharacteristic != null) {
       List<int> bytes = utf8.encode(data);
       await targetCharacteristic!.write(bytes);
-      debugPrint('Data sent: $data');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Data Sent Successfully")),
+      );
     } else {
-      debugPrint('Characteristic not found');
+      debugPrint("Characteristic not found");
     }
   }
 
@@ -68,34 +101,27 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _permissionHandler();
+
+    _scanWifi();
     _setupScanListener();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("ESP Bluetooth")),
+      appBar: AppBar(title: const Text("Flutter Bluetooth")),
       body: Padding(
         padding: const EdgeInsets.all(50),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          TextField(
-            onChanged: (text) => _ssid = text,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-              hintText: "SSID",
-            ),
+          DropdownButton(
+            value: _ssid,
+            items: _ssidList,
+            onChanged: (text) => setState(() => _ssid = text!),
           ),
           SizedBox(height: 10),
           TextField(
             onChanged: (text) => _pass = text,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-              hintText: "Password",
-            ),
+            decoration: InputDecoration(hintText: "Password"),
           ),
           SizedBox(height: 25),
           ElevatedButton(
