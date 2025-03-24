@@ -43,13 +43,22 @@ class _WifiScreenState extends State<WifiScreen> {
   Future<void> _getTarget() async {
     await widget.target.device.connect();
     final services = await widget.target.device.discoverServices();
-    targetCharacteristic = services[1].characteristics[2];
+    for (BluetoothService service in services) {
+      final characteristics = service.characteristics;
+      for (BluetoothCharacteristic characteristic in characteristics) {
+        final charID = characteristic.characteristicUuid.str;
+        if (charID == "ff01") {
+          targetCharacteristic = characteristic;
+        }
+      }
+    }
   }
 
-  Future<void> _sendData(String data) async {
+  Future<void> _sendData(Map<String, String> data) async {
+    String payload = jsonEncode(data);
+
     if (targetCharacteristic != null) {
-      List<int> bytes = utf8.encode(data);
-      await targetCharacteristic!.write(bytes);
+      await targetCharacteristic!.write(utf8.encode(payload));
 
       if (!mounted) return;
 
@@ -86,7 +95,7 @@ class _WifiScreenState extends State<WifiScreen> {
           ),
           SizedBox(height: 25),
           ElevatedButton(
-            onPressed: () => _sendData("$_ssid +=+ $_pass"),
+            onPressed: () => _sendData({"ssid": _ssid, "pwd": _pass}),
             child: Text("Send Data"),
           ),
         ]),
