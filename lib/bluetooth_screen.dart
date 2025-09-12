@@ -12,7 +12,7 @@ class BluetoothScreen extends StatefulWidget {
 class _BluetoothScreenState extends State<BluetoothScreen> {
   final List<ScanResult> _btDeviceList = [];
 
-  void _setupScanListener() {
+  Future<void> _setupScanListener() async {
     Set<String> temp = {};
 
     FlutterBluePlus.onScanResults.listen((results) async {
@@ -28,7 +28,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   @override
   void initState() {
     super.initState();
-    _setupScanListener();
+    _setupScanListener().then((_) async {
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
+    });
   }
 
   @override

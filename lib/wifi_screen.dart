@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:wifi_scan/wifi_scan.dart';
+import 'package:flutter_bluetooth/success_screen.dart';
 
 class WifiScreen extends StatefulWidget {
   const WifiScreen({super.key, required this.target});
@@ -23,22 +23,7 @@ class _WifiScreenState extends State<WifiScreen> {
   String _ssid = "Select SSID";
   String _pass = "";
 
-  void _scanWifi() async {
-    Set<String> temp = {};
-
-    WiFiScan.instance.onScannedResultsAvailable.listen((res) {
-      for (WiFiAccessPoint accessPoint in res) {
-        if (accessPoint.ssid.isNotEmpty && temp.add(accessPoint.ssid)) {
-          _ssidList.add(DropdownMenuItem(
-            value: accessPoint.ssid,
-            child: Text(accessPoint.ssid),
-          ));
-        }
-      }
-
-      setState(() {});
-    });
-  }
+  bool _hidePass = true;
 
   Future<void> _getTarget() async {
     await widget.target.device.connect();
@@ -47,63 +32,95 @@ class _WifiScreenState extends State<WifiScreen> {
       final characteristics = service.characteristics;
       for (BluetoothCharacteristic characteristic in characteristics) {
         final charID = characteristic.characteristicUuid.str;
-        if (charID == "ff01") {
-          targetCharacteristic = characteristic;
-        }
+        if (charID == "ff01") targetCharacteristic = characteristic;
       }
     }
   }
 
-  Future<void> _sendData(Map<String, String> data) async {
-    String payload = jsonEncode(data);
+  Future<void> _getWifiSsid() async {
+    Set<String> temp = {};
 
-    if (targetCharacteristic != null) {
-      await targetCharacteristic!.write(utf8.encode(payload));
+    await targetCharacteristic!.setNotifyValue(true);
 
-      if (!mounted) return;
+    targetCharacteristic!.lastValueStream.listen((val) {
+      final receivedData = utf8.decode(val);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Data Sent Successfully")),
-      );
-    } else {
-      debugPrint("Characteristic not found");
-    }
+      final regex = RegExp(r'"ssid"\s*:\s*"([^"]+)"');
+      final match = regex.firstMatch(receivedData);
+
+      if (match != null) {
+        final ssid = match.group(1);
+
+        if (ssid!.isNotEmpty && temp.add(ssid)) {
+          setState(() {
+            _ssidList.add(DropdownMenuItem(value: ssid, child: Text(ssid)));
+          });
+        }
+      }
+    });
+
+    await targetCharacteristic!.write(utf8.encode("RefreshWifi"));
   }
 
   @override
   void initState() {
     super.initState();
-    _scanWifi();
+    _getTarget().then((_) => _getWifiSsid());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.target.advertisementData.advName)),
-      body: Padding(
-        padding: const EdgeInsets.all(50),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          DropdownButton(
-            value: _ssid,
-            items: _ssidList,
-            onChanged: (text) => setState(() => _ssid = text!),
-          ),
-          SizedBox(height: 10),
-          TextField(
-            onChanged: (text) => _pass = text,
-            decoration: InputDecoration(hintText: "Password"),
-          ),
-          SizedBox(height: 25),
-          ElevatedButton(
-            onPressed: () => _sendData({"ssid": _ssid, "pwd": _pass}),
-            child: Text("Send Data"),
-          ),
-        ]),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getTarget,
-        child: Icon(Icons.bluetooth),
-      ),
+      body: _ssidList.length < 2
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(50),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: DropdownButton(
+                        value: _ssid,
+                        items: _ssidList,
+                        onChanged: (text) => setState(() => _ssid = text!),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    TextField(
+                      obscureText: _hidePass,
+                      onChanged: (text) => _pass = text,
+                      decoration: InputDecoration(
+                        hintText: "Enter Wifi Password",
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() => _hidePass = !_hidePass);
+                          },
+                          icon: Icon(
+                            _hidePass ? Icons.visibility_off : Icons.visibility,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 40),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await targetCharacteristic!.write(utf8.encode(
+                          jsonEncode({"ssid": _ssid, "pwd": _pass}),
+                        ));
+
+                        if (!context.mounted) return;
+
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => SuccessScreen()),
+                        );
+                      },
+                      child: Text("Send Data"),
+                    ),
+                  ]),
+            ),
     );
   }
 }

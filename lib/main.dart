@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth/bluetooth_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:wifi_scan/wifi_scan.dart';
 
 void main() => runApp(const MyApp());
 
@@ -27,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await Permission.bluetooth.request();
     await Permission.bluetoothScan.request();
     await Permission.bluetoothConnect.request();
-    await WiFiScan.instance.canStartScan(askPermissions: true);
   }
 
   @override
