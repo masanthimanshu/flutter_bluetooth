@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:flutter_bluetooth/success_screen.dart';
 
 class WifiScreen extends StatefulWidget {
   const WifiScreen({super.key, required this.target});
@@ -43,23 +42,36 @@ class _WifiScreenState extends State<WifiScreen> {
     await targetCharacteristic!.setNotifyValue(true);
 
     targetCharacteristic!.lastValueStream.listen((val) {
-      final receivedData = utf8.decode(val);
+      final res = jsonDecode(utf8.decode(val));
 
-      final regex = RegExp(r'"ssid"\s*:\s*"([^"]+)"');
-      final match = regex.firstMatch(receivedData);
-
-      if (match != null) {
-        final ssid = match.group(1);
-
-        if (ssid!.isNotEmpty && temp.add(ssid)) {
-          setState(() {
-            _ssidList.add(DropdownMenuItem(value: ssid, child: Text(ssid)));
-          });
-        }
+      if (temp.add(res["ssid"])) {
+        setState(() {
+          _ssidList.add(
+            DropdownMenuItem(value: res["ssid"], child: Text(res["ssid"])),
+          );
+        });
       }
     });
 
     await targetCharacteristic!.write(utf8.encode("RefreshWifi"));
+  }
+
+  Future<void> _sendData() async {
+    targetCharacteristic!.lastValueStream.listen((val) {
+      final res = jsonDecode(utf8.decode(val));
+
+      if (res["wifi"] == "connected") {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Device Connected Successfully")),
+        );
+      }
+    });
+
+    await targetCharacteristic!.write(utf8.encode(
+      jsonEncode({"ssid": _ssid, "pwd": _pass}),
+    ));
   }
 
   @override
@@ -105,18 +117,7 @@ class _WifiScreenState extends State<WifiScreen> {
                     ),
                     SizedBox(height: 40),
                     ElevatedButton(
-                      onPressed: () async {
-                        await targetCharacteristic!.write(utf8.encode(
-                          jsonEncode({"ssid": _ssid, "pwd": _pass}),
-                        ));
-
-                        if (!context.mounted) return;
-
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => SuccessScreen()),
-                        );
-                      },
+                      onPressed: _sendData,
                       child: Text("Send Data"),
                     ),
                   ]),
