@@ -58,14 +58,14 @@ class _WifiScreenState extends State<WifiScreen> {
 
   Future<void> _sendData() async {
     targetCharacteristic!.lastValueStream.listen((val) {
-      final res = jsonDecode(utf8.decode(val));
+      final res = jsonDecode(utf8.decode(val).replaceAll(r"\", ""));
 
-      if (res["wifi"] == "connected") {
+      if (res["status"] == "ok") {
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Device Connected Successfully")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Device Connected - ${res["device_serial"]}"),
+        ));
       }
     });
 
@@ -82,46 +82,42 @@ class _WifiScreenState extends State<WifiScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_ssidList.length < 2) {
+      return Scaffold(
+        appBar: AppBar(title: Text("Looking for Wifi Ssid")),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.target.advertisementData.advName)),
-      body: _ssidList.length < 2
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(50),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: DropdownButton(
-                        value: _ssid,
-                        items: _ssidList,
-                        onChanged: (text) => setState(() => _ssid = text!),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    TextField(
-                      obscureText: _hidePass,
-                      onChanged: (text) => _pass = text,
-                      decoration: InputDecoration(
-                        hintText: "Enter Wifi Password",
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() => _hidePass = !_hidePass);
-                          },
-                          icon: Icon(
-                            _hidePass ? Icons.visibility_off : Icons.visibility,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 40),
-                    ElevatedButton(
-                      onPressed: _sendData,
-                      child: Text("Send Data"),
-                    ),
-                  ]),
+      body: Padding(
+        padding: const EdgeInsets.all(50),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          SizedBox(
+            width: double.infinity,
+            child: DropdownButton(
+              value: _ssid,
+              items: _ssidList,
+              onChanged: (text) => setState(() => _ssid = text!),
             ),
+          ),
+          SizedBox(height: 20),
+          TextField(
+            obscureText: _hidePass,
+            onChanged: (text) => _pass = text,
+            decoration: InputDecoration(
+              hintText: "Enter Wifi Password",
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => _hidePass = !_hidePass),
+                icon: Icon(_hidePass ? Icons.visibility_off : Icons.visibility),
+              ),
+            ),
+          ),
+          SizedBox(height: 40),
+          ElevatedButton(onPressed: _sendData, child: Text("Send Data")),
+        ]),
+      ),
     );
   }
 }
