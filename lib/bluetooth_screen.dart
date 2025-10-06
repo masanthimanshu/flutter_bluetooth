@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:flutter_bluetooth/wifi_screen.dart';
+import "package:flutter/material.dart";
+import "package:flutter_blue_plus/flutter_blue_plus.dart";
+import "package:flutter_bluetooth/wifi_screen.dart";
 
 class BluetoothScreen extends StatefulWidget {
   const BluetoothScreen({super.key});
@@ -36,7 +36,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Bluetooth Results")),
+      appBar: AppBar(title: const Text("Bluetooth Results")),
       body: ListView.builder(
         itemCount: _btDeviceList.length,
         itemBuilder: (e, index) {
@@ -55,7 +55,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         onPressed: () async {
           await FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
         },
-        child: Icon(Icons.refresh),
+        child: const Icon(Icons.refresh),
       ),
     );
   }

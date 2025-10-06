@@ -1,7 +1,7 @@
-import 'dart:convert';
+import "dart:convert";
 
-import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import "package:flutter/material.dart";
+import "package:flutter_blue_plus/flutter_blue_plus.dart";
 
 class WifiScreen extends StatefulWidget {
   const WifiScreen({super.key, required this.target});
@@ -16,7 +16,7 @@ class _WifiScreenState extends State<WifiScreen> {
   BluetoothCharacteristic? targetCharacteristic;
 
   final List<DropdownMenuItem<String>> _ssidList = [
-    DropdownMenuItem(value: "Select SSID", child: Text("Select SSID")),
+    const DropdownMenuItem(value: "Select SSID", child: Text("Select SSID")),
   ];
 
   String _ssid = "Select SSID";
@@ -25,7 +25,7 @@ class _WifiScreenState extends State<WifiScreen> {
   bool _hidePass = true;
 
   Future<void> _getTarget() async {
-    await widget.target.device.connect();
+    await widget.target.device.connect(license: License.free);
     final services = await widget.target.device.discoverServices();
     for (BluetoothService service in services) {
       final characteristics = service.characteristics;
@@ -84,8 +84,8 @@ class _WifiScreenState extends State<WifiScreen> {
   Widget build(BuildContext context) {
     if (_ssidList.length < 2) {
       return Scaffold(
-        appBar: AppBar(title: Text("Looking for Wifi Ssid")),
-        body: Center(child: CircularProgressIndicator()),
+        appBar: AppBar(title: const Text("Looking for Wifi Ssid")),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -102,7 +102,7 @@ class _WifiScreenState extends State<WifiScreen> {
               onChanged: (text) => setState(() => _ssid = text!),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           TextField(
             obscureText: _hidePass,
             onChanged: (text) => _pass = text,
@@ -114,8 +114,8 @@ class _WifiScreenState extends State<WifiScreen> {
               ),
             ),
           ),
-          SizedBox(height: 40),
-          ElevatedButton(onPressed: _sendData, child: Text("Send Data")),
+          const SizedBox(height: 40),
+          ElevatedButton(onPressed: _sendData, child: const Text("Send Data")),
         ]),
       ),
     );
